@@ -29,10 +29,10 @@ main() {
 	unset tainted
 
 	# Setup dependencies to check for
-	DEPENDENCIES="jsonfilter uclient-fetch tar grep"
+	DEPENDENCIES="tar grep jq wget-ssl curl"
 
 	# Set up remote locations and branch
-	BRANCH="${CAKE_AUTORATE_BRANCH:-${2-v3.1}}
+	BRANCH="${CAKE_AUTORATE_BRANCH:-${2-v3.1}}"
 	REPOSITORY="${CAKE_AUTORATE_REPO:-${1-lynxthecat/cake-autorate}}"
 	SRC_DIR="https://github.com/${REPOSITORY}/archive/"
 	API_URL="https://api.github.com/repos/${REPOSITORY}/commits/${BRANCH}"
@@ -81,7 +81,8 @@ main() {
 	cd cake-autorate/ || exit 1
 
 	# Get the latest commit to download
-	commit=$(uclient-fetch -qO- "${API_URL}" | jsonfilter -e @.sha)
+	#commit=$(uclient-fetch -qO- "${API_URL}" | jsonfilter -e @.sha)
+	commit=$(curl -s "${API_URL}" | jq .sha)
 	if [ -z "${commit:-}" ];
 	then
 		printf >&2 "Invalid operation occurred, commit variable should not be empty"
@@ -93,7 +94,8 @@ main() {
 	# Download the files to a temporary directory, so we can move them to the cake-autorate directory
 	tmp=$(mktemp -d)
 	trap 'rm -rf "${tmp}"' EXIT INT TERM
-	uclient-fetch -qO- "${SRC_DIR}/${commit}.tar.gz" | tar -xozf - -C "${tmp}"
+	#uclient-fetch -qO- "${SRC_DIR}/${commit}.tar.gz" | tar -xozf - -C "${tmp}"
+	wget -qO- "${SRC_DIR}/${commit}.tar.gz" | tar -xozf - -C "${tmp}"
 	mv "${tmp}/cake-autorate-"*/* "${tmp}"
 
 	# Migrate old configuration (and new file) files if present
